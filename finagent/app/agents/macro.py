@@ -8,6 +8,7 @@ from tavily import TavilyClient
 
 from app.graph.state import AgentState, MacroOutput
 from app.utils.data_preprocessing import DataFlag
+from app.prompts.services.prompt_loader import PromptManagementService
 
 logger = logging.getLogger("finagent.agents.macro")
 
@@ -71,16 +72,22 @@ def macro_agent_node(state: AgentState) -> AgentState:
         state["macro_context"] = None
         return state
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    app_dir = os.path.dirname(current_dir)
-    prompt_path = os.path.join(app_dir, "prompts", "macro_agent.txt")
+    # current_dir = os.path.dirname(os.path.abspath(__file__))
+    # app_dir = os.path.dirname(current_dir)
+    # prompt_path = os.path.join(app_dir, "prompts", "macro_agent.txt")
 
+    # try:
+    #     with open(prompt_path, "r", encoding="utf-8") as f:
+    #         prompt_template = f.read()
+    #     prompt = prompt_template.format(search_results=search_results)
+    # except FileNotFoundError as fnf_err:
     try:
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            prompt_template = f.read()
-        prompt = prompt_template.format(search_results=search_results)
-    except FileNotFoundError as fnf_err:
-        fail_msg = f"Prompt template file not found at {prompt_path}: {str(fnf_err)}"
+        prompt_service = PromptManagementService()
+        template = prompt_service.load_prompt("macro_agent")
+        prompt = template.format({"search_results": search_results})
+    except (FileNotFoundError, ValueError, KeyError) as prompt_err:
+
+        fail_msg = f"Prompt service failure: {str(prompt_err)}"
         logger.error(f"[{run_id}][{note_id}] {fail_msg}")
 
         state["flags"].append(
