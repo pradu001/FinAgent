@@ -46,7 +46,6 @@ def macro_agent_node(state: AgentState) -> AgentState:
         state["macro_context"] = None
         return state
     
-    # 2. Gather market context via Tavily Search
     search_query = (
         "últimos dados Brasil economia PIB taxa Selic inflação IPCA "
         "Banco Central IBGE Reuters Brasil Bloomberg"
@@ -76,7 +75,6 @@ def macro_agent_node(state: AgentState) -> AgentState:
         state["macro_context"] = None
         return state
 
-    # 3. Load and format Prompt
     try:
         prompt_service = PromptManagementService()
         template = prompt_service.load_prompt("macro_agent")
@@ -96,20 +94,16 @@ def macro_agent_node(state: AgentState) -> AgentState:
         state["macro_context"] = None
         return state
     
-    # 4. Request structured reasoning and schema formatting from OpenRouter
     try:
         logger.info(f"[{run_id}][{note_id}] Requesting structured output from OpenRouter...")
         
-        # Configure the client to point to the OpenRouter gateway endpoint
         client = OpenAI(
             api_key=openrouter_api_key,
             base_url="https://openrouter.ai/api/v1"
         )
 
-        # Target Meta's flagship free 70B model
         target_model = "openrouter/free"
 
-        # Explicitly instruct the model to return raw JSON matching our schema
         schema_instruction = (
             f"You must return a valid JSON object matching this schema: "
             f"{MacroOutput.model_json_schema()}"
@@ -121,7 +115,6 @@ def macro_agent_node(state: AgentState) -> AgentState:
                 {"role": "system", "content": f"You are a strict financial analyst. {schema_instruction}"},
                 {"role": "user", "content": prompt}
             ],
-            # Enforce dynamic json object schema formatting support
             response_format={
                 "type": "json_object"
             },
@@ -130,19 +123,15 @@ def macro_agent_node(state: AgentState) -> AgentState:
 
         raw_content = response.choices[0].message.content.strip()        
 
-        # Validate raw output matches our Pydantic structure exactly
         cleaned_content = raw_content
         if cleaned_content.startswith("```"):
-            # Strip off the ```json or ``` and trailing ```
             cleaned_content = re.sub(r"^```(?:json)?\n", "", cleaned_content, flags=re.IGNORECASE)
             cleaned_content = re.sub(r"\n```$", "", cleaned_content)
             cleaned_content = cleaned_content.strip()
         
-        # Validate that the cleaned output matches our Pydantic structure exactly
         macro_data = MacroOutput.model_validate_json(cleaned_content)
         state["macro_context"] = macro_data
 
-        # Set metadata map freshness safely
         if "data_freshness" not in state:
             state["data_freshness"] = {}
         state["data_freshness"]["macro"] = datetime.now(timezone.utc).isoformat()
