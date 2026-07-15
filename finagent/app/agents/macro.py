@@ -1,5 +1,3 @@
-# app/agents/macro.py
-
 import os
 import logging
 import re
@@ -11,6 +9,12 @@ from tavily import TavilyClient
 from app.graph.state import AgentState, MacroOutput
 from app.utils.data_preprocessing import DataFlag
 from app.prompts.services.prompt_loader import PromptManagementService
+
+MONTHS_PT = {
+    1: "janeiro", 2: "fevereiro", 3: "março", 4: "abril",
+    5: "maio", 6: "junho", 7: "julho", 8: "agosto",
+    9: "setembro", 10: "outubro", 11: "novembro", 12: "dezembro"
+}
 
 logger = logging.getLogger("finagent.agents.macro")
 
@@ -27,7 +31,6 @@ def macro_agent_node(state: AgentState) -> AgentState:
 
     logger.info(f"[{run_id}][{note_id}] Starting MacroAgent analysis.")
 
-    # 1. Fetch credentials
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     tavily_api_key = os.getenv("TAVILY_API_KEY")
 
@@ -46,9 +49,13 @@ def macro_agent_node(state: AgentState) -> AgentState:
         state["macro_context"] = None
         return state
     
+    now = datetime.now(timezone.utc)
+    month_name = MONTHS_PT[now.month]
+    year_str = str(now.year)
+
     search_query = (
-        "últimos dados Brasil economia PIB taxa Selic inflação IPCA "
-        "Banco Central IBGE Reuters Brasil Bloomberg"
+        f"últimos dados oficiais economia Brasil {month_name} {year_str} "
+        f"PIB inflação IPCA taxa Selic Banco Central IBGE"
     )
 
     try:
