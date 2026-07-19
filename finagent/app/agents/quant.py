@@ -23,8 +23,16 @@ def quant_agent_node(state: AgentState) -> AgentState:
 
     now = datetime.now(timezone.utc)
     last_fetched = state.get("data_freshness", {}).get("company")
+
+    if isinstance(last_fetched, str):
+        try:
+            last_fetched = datetime.fromisoformat(last_fetched)
+        except ValueError:
+            logger.warning("Failed to parse ISO string timestamp into datetime format.")
+            last_fetched = None
     
     if last_fetched and isinstance(last_fetched, datetime):
+        now = datetime.now(timezone.utc)
         age = now - last_fetched
         if age > timedelta(hours=24):
             logger.error(f"[{run_id}][{note_id}][QuantAgent] Data is stale ({age.total_seconds() / 3600:.1f} hours old). Aborting.")
