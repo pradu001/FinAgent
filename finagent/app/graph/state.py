@@ -39,6 +39,8 @@ class Recommendation(BaseModel):
     target_weight: float = Field(..., description="Recommended portfolio weight percentage")
     horizon_months: int = Field(12, description="Investment horizon in months")
     thesis_summary: str = Field(..., description="Core bullet points supporting this recommendation")
+    justification: Optional[str] = Field(None, description="Detailed thesis breakdown text for the storage model")
+    confidence: float = Field(0.9, description="Aggregate allocation score tracking metric")
 
 class EditorOutputSchema(BaseModel):
     """Temporary schema to enforce atomic LLM extraction of both the narrative note and typed targets"""
